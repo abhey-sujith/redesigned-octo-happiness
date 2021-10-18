@@ -46,5 +46,12 @@ router.delete(
 
 router.get("/getallmtusers", auth.checkToken, mtController.getallmtusers);
 router.post("/create-contract", auth.checkToken, mtController.createcontract);
+router.post("/edit-contract", auth.checkToken, mtController.editcontract);
+router.get("/getallmtcontract", auth.checkToken, mtController.getallmtcontract);
+router.delete(
+  "/deletemtcontract",
+  auth.checkToken,
+  mtController.deletemtcontract
+);
 
 module.exports = router;

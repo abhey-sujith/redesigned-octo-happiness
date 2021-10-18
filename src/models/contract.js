@@ -25,10 +25,27 @@ const contractSchema = new mongoose.Schema(
       // required: [true, "Please enter an username"],
       // validate: [validateName, "Please enter a valid username"],
     },
-    contractpeople: {
-      type: Array,
-      required: [true, "Please enter an people"],
-      // validate: [validateName, "Please enter a valid username"],
+    contractpeople: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: [true, "Please enter a User in Users Collection"],
+        // validate: [validateName, "Please enter a valid username"],
+      },
+    ],
+    createdby: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: [true, "Please enter the person who creates the contract"],
+    },
+    updatedby: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: [true, "Please enter the person who creates the contract"],
+    },
+    state: {
+      type: String,
+      default: config.status.ONGOING,
     },
   },
   { timestamps: true }
