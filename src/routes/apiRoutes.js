@@ -45,13 +45,28 @@ router.delete(
 );
 
 router.get("/getallmtusers", auth.checkToken, mtController.getallmtusers);
-router.post("/create-contract", auth.checkToken, mtController.createcontract);
-router.post("/edit-contract", auth.checkToken, mtController.editcontract);
-router.get("/getallmtcontract", auth.checkToken, mtController.getallmtcontract);
-router.delete(
-  "/deletemtcontract",
+router.post("/create-quotation", auth.checkToken, mtController.createQuotation);
+router.post(
+  "/approve-quotation",
   auth.checkToken,
-  mtController.deletemtcontract
+  mtController.approvequotation
 );
+router.post("/end-quotation", auth.checkToken, mtController.endquotation);
+router.post("/edit-quotation", auth.checkToken, mtController.editquotation);
+router.get(
+  "/getallmtquotations",
+  auth.checkToken,
+  mtController.getallmtquotations
+);
+router.delete(
+  "/deletemtquotation",
+  auth.checkToken,
+  mtController.deletemtquotation
+);
+// router.get(
+//   "/getmt-availablecontract",
+//   auth.checkToken,
+//   mtController.getmtavailablecontract
+// );
 
 module.exports = router;

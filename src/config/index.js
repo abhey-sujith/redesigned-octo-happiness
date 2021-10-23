@@ -13,6 +13,8 @@ const roles = {
 const rolesArray = Object.values(roles);
 
 const status = {
+  PENDING: "PENDING",
+  APPROVED: "APPROVED",
   ONGOING: "ONGOING",
   DONE: "DONE",
   SUSPENDED: "SUSPENDED",
