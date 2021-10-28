@@ -18,6 +18,7 @@ const status = {
   ONGOING: "ONGOING",
   DONE: "DONE",
   SUSPENDED: "SUSPENDED",
+  ACCEPTED: "ACCEPTED",
 };
 
 module.exports = {

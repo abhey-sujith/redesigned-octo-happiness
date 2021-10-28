@@ -63,10 +63,8 @@ router.delete(
   auth.checkToken,
   mtController.deletemtquotation
 );
-// router.get(
-//   "/getmt-availablecontract",
-//   auth.checkToken,
-//   mtController.getmtavailablecontract
-// );
+router.get("/getmt-quotations", auth.checkToken, mtController.getmtquotations);
+
+router.post("/set-quotation", auth.checkToken, mtController.quotation);
 
 module.exports = router;

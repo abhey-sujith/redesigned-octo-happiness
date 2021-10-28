@@ -26,6 +26,10 @@ const handleErrors = (err) => {
     errors.other = "only MT_USER can access this";
     return errors;
   }
+  if (err.message === "People have already been assigned to this quotation") {
+    errors.other = "People have already been assigned to this quotation";
+    return errors;
+  }
   // validation errors
   if (err.message.includes("quotation validation failed")) {
     // console.log(err.errors);
@@ -141,6 +145,28 @@ module.exports.approvequotation = async (req, res) => {
       );
 
       if (quotation) {
+        const exists = await User.exists({
+          "quotationDetails.quotation": ObjectId(quotationId),
+        });
+        if (exists) {
+          throw new Error(
+            "People have already been assigned to this quotation"
+          );
+        }
+        console.log(exists);
+        await User.updateMany(
+          { _id: { $in: people } },
+          {
+            $push: {
+              quotationDetails: {
+                state: config.status.ONGOING,
+                startedOn: null,
+                endedOn: null,
+                quotation: new ObjectId(quotationId),
+              },
+            },
+          }
+        );
         res.status(201).json({
           message: "quotation approved",
           quotation,
@@ -150,6 +176,7 @@ module.exports.approvequotation = async (req, res) => {
       throw Error("only MT_ADMIN can access this");
     }
   } catch (err) {
+    console.log(err);
     const errors = handleErrors(err);
     res.status(400).json({ errors });
   }
@@ -263,7 +290,8 @@ module.exports.getallmtquotations = async (req, res) => {
     ) {
       const quotations = await Quotation.find({}, {})
         .populate({ path: "createdBy", select: "username email" })
-        .populate({ path: "updatedBy", select: "username email" });
+        .populate({ path: "updatedBy", select: "username email" })
+        .populate({ path: "people", select: "username email" });
       return res.status(200).json({
         message: "fetch successful",
         quotations,
@@ -298,101 +326,68 @@ module.exports.deletemtquotation = async (req, res) => {
   }
 };
 
-// module.exports.getmtavailablecontract = async (req, res) => {
-//   try {
-//     if ([config.roles.MT_USER].includes(req.decoded.role)) {
-//       const data = await User.aggregate([
-//         {
-//           $match: {
-//             _id: new ObjectId(req.decoded.userId),
-//           },
-//         },
-//         {
-//           $lookup: {
-//             from: "contracts",
-//             localField: "_id",
-//             foreignField: "contractpeople",
-//             as: "availablecontracts",
-//           },
-//         },
-//         {
-//           $project: {
-//             availablecontracts: {
-//               _id: 1,
-//               contractname: 1,
-//               contractdetails: 1,
-//               state: 1,
-//             },
-//             _id: 0,
-//           },
-//         },
-//       ]);
-//       const people = await User.aggregate([
-//         {
-//           $match: {
-//             _id: new ObjectId(req.decoded.userId),
-//           },
-//         },
-//         {
-//           $lookup: {
-//             from: "contracts",
-//             localField: "_id",
-//             foreignField: "contractpeople",
-//             as: "availablecontracts",
-//           },
-//         },
-//         {
-//           $project: {
-//             availablecontracts: {
-//               _id: 1,
-//               contractname: 1,
-//               contractdetails: 1,
-//               contractpeople: 1,
-//               state: 1,
-//             },
-//             _id: 0,
-//           },
-//         },
-//         {
-//           $unwind: {
-//             path: "$availablecontracts",
-//           },
-//         },
-//         {
-//           $replaceWith: {
-//             data: "$availablecontracts.contractpeople",
-//           },
-//         },
-//         {
-//           $lookup: {
-//             from: "users",
-//             localField: "data",
-//             foreignField: "_id",
-//             as: "data",
-//           },
-//         },
-//         {
-//           $project: {
-//             data: {
-//               username: 1,
-//               email: 1,
-//             },
-//           },
-//         },
-//       ]);
-//       return res.status(200).json({
-//         message: "fetch successful",
-//         data,
-//         people,
-//       });
-//     } else {
-//       throw Error("only MT_USER can access this");
-//     }
-//   } catch (err) {
-//     const errors = handleErrors(err);
-//     res.status(400).json({ errors });
-//   }
-// };
+module.exports.getmtquotations = async (req, res) => {
+  try {
+    if ([config.roles.MT_USER].includes(req.decoded.role)) {
+      const data = await User.findOne(
+        { _id: req.decoded.userId },
+        "quotationDetails"
+      ).populate({
+        path: "quotationDetails.quotation",
+      });
+      await data.populate({
+        path: "quotationDetails.quotation.people",
+        select: "username email",
+      });
+      return res.status(200).json({
+        message: "fetch successful",
+        data,
+      });
+    } else {
+      throw Error("only MT_USER can access this");
+    }
+  } catch (err) {
+    const errors = handleErrors(err);
+    res.status(400).json({ errors });
+  }
+};
+
+module.exports.quotation = async (req, res) => {
+  try {
+    const state = req.body.state;
+    if ([config.roles.MT_USER].includes(req.decoded.role)) {
+      const data = await User.updateOne(
+        {
+          _id: req.decoded.userId,
+          "quotationDetails._id": req.body.arrayElementId,
+        },
+        state === config.status.ACCEPTED
+          ? {
+              $set: {
+                "quotationDetails.$.state": state,
+                "quotationDetails.$.startedOn": new Date(),
+              },
+            }
+          : {
+              $set: {
+                "quotationDetails.$.state": state,
+                "quotationDetails.$.endedOn": new Date(),
+              },
+            }
+      );
+      console.log(data);
+      return res.status(200).json({
+        message: "fetch successful",
+        data,
+      });
+    } else {
+      throw Error("only MT_ADMIN can access this");
+    }
+  } catch (err) {
+    const errors = handleErrors(err);
+    res.status(400).json({ errors });
+  }
+};
 
 // module.exports.createcontract = async (req, res) => {
 

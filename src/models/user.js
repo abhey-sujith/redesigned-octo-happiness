@@ -44,6 +44,18 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    quotationDetails: [
+      {
+        state: String,
+        startedOn: Date,
+        endedOn: Date,
+        quotation: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "quotation",
+          unique: true,
+        },
+      },
+    ],
   },
   { timestamps: true }
 );
