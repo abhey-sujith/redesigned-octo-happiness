@@ -129,20 +129,16 @@ module.exports.approvequotation = async (req, res) => {
         req.decoded.role
       )
     ) {
-      const quotation = await Quotation.findByIdAndUpdate(
-        quotationId,
-        {
-          $set: {
-            advanceAmount,
-            deliveryDate,
-            startDate,
-            people,
-            updatedby: req.decoded.userId,
-            state: config.status.APPROVED,
-          },
+      const quotation = await Quotation.findByIdAndUpdate(quotationId, {
+        $set: {
+          advanceAmount,
+          deliveryDate,
+          startDate,
+          people,
+          updatedby: req.decoded.userId,
+          state: config.status.APPROVED,
         },
-        { upsert: true }
-      );
+      });
 
       if (quotation) {
         const exists = await User.exists({
@@ -193,18 +189,14 @@ module.exports.endquotation = async (req, res) => {
         req.decoded.role
       )
     ) {
-      const quotation = await Quotation.findByIdAndUpdate(
-        quotationId,
-        {
-          $set: {
-            settledAmount,
-            endDate,
-            updatedby: req.decoded.userId,
-            state: config.status.DONE,
-          },
+      const quotation = await Quotation.findByIdAndUpdate(quotationId, {
+        $set: {
+          settledAmount,
+          endDate,
+          updatedby: req.decoded.userId,
+          state: config.status.DONE,
         },
-        { upsert: true }
-      );
+      });
 
       if (quotation) {
         res.status(201).json({
@@ -248,23 +240,19 @@ module.exports.editquotation = async (req, res) => {
         req.decoded.role
       )
     ) {
-      const contract = await Quotation.findByIdAndUpdate(
-        quotationId,
-        {
-          $set: {
-            customerName,
-            quotationDetails,
-            requirements,
-            amount,
-            daysToComplete,
-            advanceAmount,
-            deliveryDate,
-            settledAmount,
-            updatedby: req.decoded.userId,
-          },
+      const contract = await Quotation.findByIdAndUpdate(quotationId, {
+        $set: {
+          customerName,
+          quotationDetails,
+          requirements,
+          amount,
+          daysToComplete,
+          advanceAmount,
+          deliveryDate,
+          settledAmount,
+          updatedby: req.decoded.userId,
         },
-        { upsert: true }
-      );
+      });
 
       if (quotationId) {
         res.status(201).json({
@@ -352,9 +340,12 @@ module.exports.getmtquotations = async (req, res) => {
   }
 };
 
-module.exports.quotation = async (req, res) => {
+module.exports.setquotation = async (req, res) => {
   try {
     const state = req.body.state;
+    const settledAmount = req.body.settledAmount;
+    const quotationId = req.body.quotationId;
+    console.log(state, settledAmount, quotationId);
     if ([config.roles.MT_USER].includes(req.decoded.role)) {
       const data = await User.updateOne(
         {
@@ -375,7 +366,75 @@ module.exports.quotation = async (req, res) => {
               },
             }
       );
-      console.log(data);
+
+      const [{ totalCount }] = await User.aggregate([
+        {
+          $match: {
+            "quotationDetails.quotation": new ObjectId(quotationId),
+          },
+        },
+        {
+          $facet: {
+            totalCount: [
+              {
+                $count: "count",
+              },
+            ],
+          },
+        },
+      ]);
+
+      const [{ doneCount }] = await User.aggregate([
+        {
+          $match: {
+            $and: [
+              {
+                "quotationDetails.quotation": new ObjectId(quotationId),
+              },
+              {
+                "quotationDetails.state": "DONE",
+              },
+            ],
+          },
+        },
+        {
+          $facet: {
+            doneCount: [
+              {
+                $count: "count",
+              },
+            ],
+          },
+        },
+      ]);
+
+      if (
+        settledAmount &&
+        quotationId &&
+        totalCount[0].count === doneCount[0].count
+      ) {
+        console.log("innnnnnnnn--------");
+        await Quotation.findByIdAndUpdate(quotationId, {
+          $set: {
+            settledAmount,
+            state: config.status.DONE,
+          },
+        });
+      } else if (totalCount[0]?.count === doneCount[0]?.count) {
+        console.log("innnnnnnnn--------");
+        await Quotation.findByIdAndUpdate(quotationId, {
+          $set: {
+            state: config.status.DONE,
+          },
+        });
+      } else if (settledAmount && quotationId) {
+        await Quotation.findByIdAndUpdate(quotationId, {
+          $set: {
+            settledAmount,
+          },
+        });
+      }
+      console.log(data, totalCount, doneCount);
       return res.status(200).json({
         message: "fetch successful",
         data,

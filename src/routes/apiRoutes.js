@@ -65,6 +65,6 @@ router.delete(
 );
 router.get("/getmt-quotations", auth.checkToken, mtController.getmtquotations);
 
-router.post("/set-quotation", auth.checkToken, mtController.quotation);
+router.post("/set-quotation", auth.checkToken, mtController.setquotation);
 
 module.exports = router;
