@@ -3,6 +3,8 @@ const router = express.Router();
 const auth = require("../middleware/jwt");
 const authController = require("../controllers/authController");
 const mtController = require("../controllers/movetechController");
+const atController = require("../controllers/attendenceController");
+const salesController = require("../controllers/salesController");
 
 router.get("/", (req, res) => {
   res.status(201).json({
@@ -66,5 +68,15 @@ router.delete(
 router.get("/getmt-quotations", auth.checkToken, mtController.getmtquotations);
 
 router.post("/set-quotation", auth.checkToken, mtController.setquotation);
+
+router.post("/add-attendance", auth.checkToken, atController.addattendence);
+
+router.get(
+  "/getuserattendance",
+  auth.checkToken,
+  atController.getuserattendance
+);
+
+router.post("/add-sales", auth.checkToken, salesController.addsales);
 
 module.exports = router;
