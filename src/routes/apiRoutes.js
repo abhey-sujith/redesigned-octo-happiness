@@ -79,4 +79,6 @@ router.get(
 
 router.post("/add-sales", auth.checkToken, salesController.addsales);
 
+router.get("/getusersale", auth.checkToken, salesController.getusersale);
+
 module.exports = router;

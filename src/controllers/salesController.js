@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
-const Attendance = require("../models/attendance");
+const Sales = require("../models/sale");
 const config = require("../config");
 var mongoose = require("mongoose");
 const ObjectId = mongoose.Types.ObjectId;
@@ -22,24 +22,11 @@ const handleErrors = (err) => {
     errors.other = "only SALES_USER can access this";
     return errors;
   }
-  if (
-    err.message === "There is a difference in time between client and server"
-  ) {
-    errors.other = "There is a difference in time between client and server";
+  if (err.message === "Choose time in the range of 2 hr") {
+    errors.other = "Choose time in the range of 2 hr";
     return errors;
   }
-  if (err.message === "Time over") {
-    errors.other = "Time over";
-    return errors;
-  }
-  if (err.message === "Already Added") {
-    errors.other = "Already Added";
-    return errors;
-  }
-  if (err.message === "Cannot Update") {
-    errors.other = "Cannot Update";
-    return errors;
-  }
+
   // validation errors
   if (err.message.includes("quotation validation failed")) {
     Object.values(err.errors).forEach((properties) => {
@@ -52,18 +39,19 @@ const handleErrors = (err) => {
 
 // controller actions
 
-module.exports.getuserattendance = async (req, res) => {
+module.exports.getusersale = async (req, res) => {
   try {
     if ([config.roles.SALES_USER].includes(req.decoded.role)) {
       var today = new Date();
-      today.setHours(today.getHours() - 10);
-      const data = await Attendance.findOne({
-        employee_id: req.decoded.userId,
-        $or: [
-          { in_time: { $gte: today.setHours(08, 0, 0, 0) } },
-          { out_time: { $gte: today.setHours(14, 0, 0, 0) } },
-        ],
-      });
+      console.log(today.setHours(07, 0, 0, 0));
+      // today.setHours(today.getHours() - 10);
+      const data = await Sales.findOne(
+        {
+          employee_id: req.decoded.userId,
+          $or: [{ createdAt: { $gte: today.setHours(07, 0, 0, 0) } }],
+        },
+        "time_0800 time_0900 time_1000 time_1100 time_1200 time_1300 time_1400 time_1500 time_1600 time_1700 time_1800 -_id"
+      );
       return res.status(200).json({
         message: "fetch successful",
         data,
@@ -80,25 +68,94 @@ module.exports.getuserattendance = async (req, res) => {
 module.exports.addsales = async (req, res) => {
   const startTime = req.body.startTime;
 
-  // const location = req.body.location;
+  const Total_Lead = req.body.Total_Lead;
+  const Total_Acivation = req.body.Total_Acivation;
+  const Total_TDL = req.body.Total_TDL;
+  const Total_TSS = req.body.Total_TSS;
+  const Details = req.body.Details;
 
   const currentBackendTimestamp = new Date();
   const currentFrontendTimestamp = new Date(startTime);
-  const difference = Math.abs(
-    currentFrontendTimestamp - currentBackendTimestamp
-  );
   const obj = {};
   console.log(
     currentBackendTimestamp,
     currentFrontendTimestamp,
-    difference,
-    currentFrontendTimestamp.getHours()
+    currentFrontendTimestamp.getHours(),
+    currentBackendTimestamp.getHours()
   );
-  obj["time_" + currentFrontendTimestamp.getHours() + "00"] =
-    currentFrontendTimestamp.getHours();
-  console.log(obj, "obj");
+
+  // console.log(obj, "obj");
   try {
     if ([config.roles.SALES_USER].includes(req.decoded.role)) {
+      if (
+        currentFrontendTimestamp.getHours() >= 08 &&
+        currentFrontendTimestamp.getHours() <= 18 &&
+        currentFrontendTimestamp.getHours() <=
+          currentBackendTimestamp.getHours() &&
+        (currentFrontendTimestamp.getHours() -
+          currentBackendTimestamp.getHours() ===
+          -1 ||
+          currentFrontendTimestamp.getHours() -
+            currentBackendTimestamp.getHours() ===
+            0)
+      ) {
+        console.log("innnn");
+        const today = new Date();
+
+        const salesdata = await Sales.find({
+          employee_id: req.decoded.userId,
+          createdAt: { $gte: today.setHours(07, 0, 0, 0) },
+        });
+
+        console.log(salesdata, "--------");
+        if (salesdata.length === 1) {
+          console.log("innnnnsrfsrdf", salesdata[0]._id);
+
+          obj["time_" + currentFrontendTimestamp.getHours() + "00"] = {
+            Total_Lead,
+            Total_Acivation,
+            Total_TDL,
+            Total_TSS,
+            Details,
+          };
+
+          const updatesale = await Sales.findByIdAndUpdate(
+            salesdata[0]._id,
+            {
+              $set: obj,
+            },
+            {
+              new: true,
+            }
+          );
+          if (updatesale) {
+            res.status(201).json({
+              message: "attendance updated",
+              updatesale,
+            });
+          }
+        } else if (salesdata.length === 0) {
+          console.log("nothing present");
+          obj["time_" + currentFrontendTimestamp.getHours() + "00"] = {
+            Total_Lead,
+            Total_Acivation,
+            Total_TDL,
+            Total_TSS,
+            Details,
+          };
+          obj["employee_id"] = new ObjectId(req.decoded.userId);
+          console.log(obj, "obj-------------");
+          const createsale = await Sales.create(obj);
+          if (createsale) {
+            res.status(201).json({
+              message: "sale added",
+              createsale,
+            });
+          }
+        }
+      } else {
+        throw Error("Choose time in the range of 2 hr");
+      }
       // if (difference) {
       //   var today = new Date();
       //   var checktime0800 =
@@ -186,10 +243,6 @@ module.exports.addsales = async (req, res) => {
       // } else {
       //   throw Error("There is a difference in time between client and server");
       // }
-
-      res.status(201).json({
-        message: "sales added",
-      });
     } else {
       throw Error("only SALES_USER can access this");
     }

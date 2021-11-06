@@ -55,13 +55,14 @@ const handleErrors = (err) => {
 module.exports.getuserattendance = async (req, res) => {
   try {
     if ([config.roles.SALES_USER].includes(req.decoded.role)) {
-      var today = new Date();
-      today.setHours(today.getHours() - 10);
+      var morning = new Date();
+      var evening = new Date();
+      // today.setHours(today.getHours() - 10);
       const data = await Attendance.findOne({
         employee_id: req.decoded.userId,
         $or: [
-          { in_time: { $gte: today.setHours(08, 0, 0, 0) } },
-          { out_time: { $gte: today.setHours(14, 0, 0, 0) } },
+          { in_time: { $gte: morning.setHours(08, 0, 0, 0) } },
+          { out_time: { $gte: evening.setHours(14, 0, 0, 0) } },
         ],
       });
       return res.status(200).json({
@@ -93,7 +94,7 @@ module.exports.addattendence = async (req, res) => {
   );
   try {
     if ([config.roles.SALES_USER].includes(req.decoded.role)) {
-      if (difference) {
+      if (difference < 900000) {
         var today = new Date();
         var checktime0800 =
           currentFrontendTimestamp.getHours() >= 08 &&
