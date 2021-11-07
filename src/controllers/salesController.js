@@ -23,7 +23,7 @@ const handleErrors = (err) => {
     return errors;
   }
   if (err.message === "Choose time in the range of 2 hr") {
-    errors.other = "Choose time in the range of 2 hr";
+    errors.other = "Choose time in the range of 2 hr (08:00-18:00)";
     return errors;
   }
 
@@ -84,6 +84,12 @@ module.exports.addsales = async (req, res) => {
     currentBackendTimestamp.getHours()
   );
 
+  const getHour = () => {
+    if (currentFrontendTimestamp.getHours() === 8) return "08";
+    else if (currentFrontendTimestamp.getHours() === 9) return "09";
+    else return currentFrontendTimestamp.getHours();
+  };
+
   // console.log(obj, "obj");
   try {
     if ([config.roles.SALES_USER].includes(req.decoded.role)) {
@@ -111,7 +117,7 @@ module.exports.addsales = async (req, res) => {
         if (salesdata.length === 1) {
           console.log("innnnnsrfsrdf", salesdata[0]._id);
 
-          obj["time_" + currentFrontendTimestamp.getHours() + "00"] = {
+          obj["time_" + getHour() + "00"] = {
             Total_Lead,
             Total_Acivation,
             Total_TDL,
@@ -136,7 +142,7 @@ module.exports.addsales = async (req, res) => {
           }
         } else if (salesdata.length === 0) {
           console.log("nothing present");
-          obj["time_" + currentFrontendTimestamp.getHours() + "00"] = {
+          obj["time_" + getHour() + "00"] = {
             Total_Lead,
             Total_Acivation,
             Total_TDL,

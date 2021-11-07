@@ -101,7 +101,7 @@ module.exports.addattendence = async (req, res) => {
           currentFrontendTimestamp.getHours() < 14;
         var checktime1400 =
           currentFrontendTimestamp.getHours() >= 14 &&
-          currentFrontendTimestamp.getHours() <= 21;
+          currentFrontendTimestamp.getHours() <= 18;
 
         if (checktime0800) {
           console.log("innnn checktime0800", checktime0800);
