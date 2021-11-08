@@ -60,6 +60,11 @@ router.get(
   auth.checkToken,
   mtController.getallmtquotations
 );
+router.post(
+  "/getallquotations",
+  auth.checkToken,
+  mtController.getallquotations
+);
 router.delete(
   "/deletemtquotation",
   auth.checkToken,

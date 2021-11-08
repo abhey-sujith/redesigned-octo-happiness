@@ -293,6 +293,91 @@ module.exports.getallmtquotations = async (req, res) => {
   }
 };
 
+module.exports.getallquotations = async (req, res) => {
+  try {
+    if (
+      [config.roles.SUPER_ADMIN, config.roles.MT_ADMIN].includes(
+        req.decoded.role
+      )
+    ) {
+      // const quotations = await Quotation.find({}, {})
+      //   .populate({ path: "createdBy", select: "username email" })
+      //   .populate({ path: "updatedBy", select: "username email" })
+      //   .populate({ path: "people", select: "username email" });
+      var sort = {};
+      console.log(req.query);
+      const pagination = req.query.pagination
+        ? parseInt(req.query.pagination)
+        : 5;
+      //PageNumber From which Page to Start
+      const pageNumber = req.query.page ? parseInt(req.query.page) + 1 : 1;
+
+      const stateQuery =
+        req.body.state && req.body.state?.length > 0
+          ? req.body.state
+          : [config.status.PENDING, config.status.DONE, config.status.APPROVED];
+
+      const sortModel =
+        req.body.sortModel && req.body.sortModel?.length > 0
+          ? req.body.sortModel
+          : [{ field: "updatedAt", sort: "desc" }];
+
+      sort[sortModel[0].field] = sortModel[0].sort === "asc" ? 1 : -1;
+      console.log(stateQuery, sortModel, sort, "sort-----------");
+      const total = await Quotation.count({ state: { $in: stateQuery } });
+      Quotation.find({ state: { $in: stateQuery } })
+        //skip takes argument to skip number of entries
+        .sort(sort)
+        .skip((pageNumber - 1) * pagination)
+        // //limit is number of Records we want to display
+        .limit(pagination)
+        .then((data) => {
+          if (data) {
+            const quotations = data.map((obj) => {
+              return {
+                id: obj._id,
+                customerName: obj.customerName,
+                quotationDetails: obj.quotationDetails,
+                requirements: obj.requirements ? obj.requirements : null,
+                amount: obj.amount,
+                daysToComplete: obj.daysToComplete,
+                advanceAmount: obj.advanceAmount ? obj.advanceAmount : null,
+                settledAmount: obj.settledAmount ? obj.settledAmount : null,
+                people: obj.people,
+                createdBy: obj.createdBy,
+                updatedBy: obj.updatedBy,
+                state: obj.state,
+                createdAt: obj.createdAt,
+                updatedAt: obj.updatedAt,
+                startDate: obj.startDate ? obj.startDate : null,
+              };
+            });
+
+            res.status(200).send({
+              quotations,
+              total,
+            });
+          } else {
+            res.status(200).send({
+              quotations: [],
+              total: 0,
+            });
+          }
+        })
+        .catch((err) => {
+          res.status(400).send({
+            err: err,
+          });
+        });
+    } else {
+      throw Error("only MT_ADMIN can access this");
+    }
+  } catch (err) {
+    const errors = handleErrors(err);
+    res.status(400).json({ errors });
+  }
+};
+
 module.exports.deletemtquotation = async (req, res) => {
   try {
     if (
