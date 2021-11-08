@@ -308,7 +308,7 @@ module.exports.getallquotations = async (req, res) => {
       console.log(req.query);
       const pagination = req.query.pagination
         ? parseInt(req.query.pagination)
-        : 5;
+        : 10;
       //PageNumber From which Page to Start
       const pageNumber = req.query.page ? parseInt(req.query.page) + 1 : 1;
 
@@ -331,6 +331,9 @@ module.exports.getallquotations = async (req, res) => {
         .skip((pageNumber - 1) * pagination)
         // //limit is number of Records we want to display
         .limit(pagination)
+        .populate({ path: "createdBy", select: "username" })
+        .populate({ path: "updatedBy", select: "username" })
+        .populate({ path: "people", select: "username email -_id" })
         .then((data) => {
           if (data) {
             const quotations = data.map((obj) => {
@@ -343,9 +346,9 @@ module.exports.getallquotations = async (req, res) => {
                 daysToComplete: obj.daysToComplete,
                 advanceAmount: obj.advanceAmount ? obj.advanceAmount : null,
                 settledAmount: obj.settledAmount ? obj.settledAmount : null,
-                people: obj.people,
-                createdBy: obj.createdBy,
-                updatedBy: obj.updatedBy,
+                people: obj.people?.length > 0 ? obj.people : [],
+                createdBy: obj.createdBy.username,
+                updatedBy: obj.updatedBy.username,
                 state: obj.state,
                 createdAt: obj.createdAt,
                 updatedAt: obj.updatedAt,
